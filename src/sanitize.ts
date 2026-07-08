@@ -11,14 +11,14 @@ export function sanitize(s: string): string {
   return s.replace(CONTROL, "").trim()
 }
 
-// renderLine formats an ad as a single plain-text line. The sentence already ends
-// with the domain per the product spec; if it does not, the domain is appended
-// defensively.
+// renderLine formats an ad as a single plain-text line. The advertiser domain leads
+// the line, followed by the sentence ("<domain> - <sentence>"); when the sentence
+// already contains the domain it is rendered as-is.
 export function renderLine(ad: Ad): string {
   const sentence = sanitize(ad.sentence)
   const domain = sanitize(ad.domain)
   if (domain && !sentence.includes(domain)) {
-    return `${sentence} - ${domain}`.trim()
+    return `${domain} - ${sentence}`.trim()
   }
   return sentence
 }

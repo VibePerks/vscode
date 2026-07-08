@@ -51,7 +51,7 @@
     }
 
     function adText() {
-      return DOMAIN && SENTENCE.indexOf(DOMAIN) === -1 ? SENTENCE + " - " + DOMAIN : SENTENCE
+      return DOMAIN && SENTENCE.indexOf(DOMAIN) === -1 ? DOMAIN + " - " + SENTENCE : SENTENCE
     }
 
     function buildLine() {
@@ -60,23 +60,30 @@
       a.href = clickHref()
       a.title = "Sponsored - VibePerks"
       a.style.opacity = "0.8"
-      // The whole line is a clickable link; the sentence is shown in bold and the
-      // advertiser's domain is underlined so the link reads as a link.
+      // The whole line is a clickable link; the advertiser's domain leads underlined and
+      // the surrounding sentence text is shown in bold so the link reads as a link.
       a.style.textDecoration = "none"
       var line = adText()
-      var idx = DOMAIN ? line.lastIndexOf(DOMAIN) : -1
+      var idx = DOMAIN ? line.indexOf(DOMAIN) : -1
       if (idx >= 0) {
         var pre = line.slice(0, idx)
         if (pre) {
-          var sentenceEl = document.createElement("span")
-          sentenceEl.style.fontWeight = "bold"
-          sentenceEl.textContent = pre
-          a.appendChild(sentenceEl)
+          var preEl = document.createElement("span")
+          preEl.style.fontWeight = "bold"
+          preEl.textContent = pre
+          a.appendChild(preEl)
         }
         var domainEl = document.createElement("span")
         domainEl.style.textDecoration = "underline"
-        domainEl.textContent = line.slice(idx)
+        domainEl.textContent = DOMAIN
         a.appendChild(domainEl)
+        var post = line.slice(idx + DOMAIN.length)
+        if (post) {
+          var postEl = document.createElement("span")
+          postEl.style.fontWeight = "bold"
+          postEl.textContent = post
+          a.appendChild(postEl)
+        }
       } else {
         var boldEl = document.createElement("span")
         boldEl.style.fontWeight = "bold"

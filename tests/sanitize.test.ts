@@ -30,13 +30,13 @@ describe("renderLine", () => {
 
   it("appends the domain defensively when missing", () => {
     expect(renderLine(ad({ sentence: "Fast APIs", domain: "alchemy.com" }))).toBe(
-      "Fast APIs - alchemy.com",
+      "alchemy.com - Fast APIs",
     )
   })
 
   it("sanitizes both fields before composing", () => {
     expect(renderLine(ad({ sentence: "Fast\u001b APIs", domain: "alchemy.com\u0000" }))).toBe(
-      "Fast APIs - alchemy.com",
+      "alchemy.com - Fast APIs",
     )
   })
 })

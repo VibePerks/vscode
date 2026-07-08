@@ -313,7 +313,9 @@ function registerCommands(context: vscode.ExtensionContext): void {
     if (!token || !token.trim()) return
     saveDeviceToken(envRecord(), token.trim())
     await applyConfig()
-    await vscode.window.showInformationMessage("VibePerks: signed in.")
+    await vscode.window.showInformationMessage(
+      "VibePerks: signed in. Reload the window (or restart VS Code) for the change to take full effect.",
+    )
   })
   cmd("vibeperks.signOut", async () => {
     // Remove the token from the shared config and revert every patched panel.
