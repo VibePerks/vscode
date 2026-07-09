@@ -5,8 +5,8 @@ import type { Ad } from "../src/types"
 function ad(over: Partial<Ad> = {}): Ad {
   return {
     ad_id: "a1",
-    sentence: "Fast APIs - alchemy.com",
-    domain: "alchemy.com",
+    sentence: "Get paid while vibe coding - VibePerks.ai",
+    domain: "VibePerks.ai",
     impression_token: "imp1",
     rotate_seconds: 20,
     ...over,
@@ -25,18 +25,20 @@ describe("sanitize", () => {
 
 describe("renderLine", () => {
   it("returns the sentence unchanged when it already ends with the domain", () => {
-    expect(renderLine(ad())).toBe("Fast APIs - alchemy.com")
+    expect(renderLine(ad())).toBe("Get paid while vibe coding - VibePerks.ai")
   })
 
   it("appends the domain defensively when missing", () => {
-    expect(renderLine(ad({ sentence: "Fast APIs", domain: "alchemy.com" }))).toBe(
-      "alchemy.com - Fast APIs",
+    expect(renderLine(ad({ sentence: "Get paid while vibe coding", domain: "VibePerks.ai" }))).toBe(
+      "VibePerks.ai - Get paid while vibe coding",
     )
   })
 
   it("sanitizes both fields before composing", () => {
-    expect(renderLine(ad({ sentence: "Fast\u001b APIs", domain: "alchemy.com\u0000" }))).toBe(
-      "alchemy.com - Fast APIs",
-    )
+    expect(
+      renderLine(
+        ad({ sentence: "Get paid while\u001b vibe coding", domain: "VibePerks.ai\u0000" }),
+      ),
+    ).toBe("VibePerks.ai - Get paid while vibe coding")
   })
 })

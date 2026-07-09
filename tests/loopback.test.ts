@@ -41,7 +41,7 @@ describe("loopback metric pings", () => {
 
 describe("loopback click redirect", () => {
   it("302-redirects to an allow-listed http(s) target and records the click", async () => {
-    const target = "https://alchemy.com"
+    const target = "https://VibePerks.ai"
     const { base, events } = await startWith([target])
     const res = await fetch(`${base}/vibeperks-ads/imp1/click?to=${encodeURIComponent(target)}`, {
       redirect: "manual",
@@ -52,7 +52,7 @@ describe("loopback click redirect", () => {
   })
 
   it("refuses a non-allow-listed target (open-redirect guard)", async () => {
-    const { base, events } = await startWith(["https://alchemy.com"])
+    const { base, events } = await startWith(["https://VibePerks.ai"])
     const res = await fetch(
       `${base}/vibeperks-ads/imp1/click?to=${encodeURIComponent("https://evil.example")}`,
       { redirect: "manual" },

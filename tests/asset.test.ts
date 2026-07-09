@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest"
 import { renderBlock, blockAssetPath } from "../src/asset"
 
 const VARS = {
-  sentence: "Fast APIs - alchemy.com",
-  domain: "alchemy.com",
-  clickUrl: "https://alchemy.com",
+  sentence: "Get paid while vibe coding - VibePerks.ai",
+  domain: "VibePerks.ai",
+  clickUrl: "https://VibePerks.ai",
   loopbackBase: "http://127.0.0.1:5599",
   token: "imp1",
   viewThresholdMs: 5000,
@@ -22,8 +22,8 @@ const TEMPLATE = [
 describe("renderBlock", () => {
   it("substitutes string values as safe JS literals", () => {
     const out = renderBlock(TEMPLATE, VARS)
-    expect(out).toContain('var SENTENCE = "Fast APIs - alchemy.com"')
-    expect(out).toContain('var CLICK_URL = "https://alchemy.com"')
+    expect(out).toContain('var SENTENCE = "Get paid while vibe coding - VibePerks.ai"')
+    expect(out).toContain('var CLICK_URL = "https://VibePerks.ai"')
     expect(out).toContain('var TOKEN = "imp1"')
   })
 

@@ -5,9 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { renderBlock, type AdRenderVars } from "../src/asset"
 
 const VARS: AdRenderVars = {
-  sentence: "Fast APIs - alchemy.com",
-  domain: "alchemy.com",
-  clickUrl: "https://alchemy.com",
+  sentence: "Get paid while vibe coding - VibePerks.ai",
+  domain: "VibePerks.ai",
+  clickUrl: "https://VibePerks.ai",
   loopbackBase: "http://127.0.0.1:5599",
   token: "imp1",
   viewThresholdMs: 5000,
@@ -59,9 +59,9 @@ describe.each(["claude-code", "codex"])("injected block (%s)", (adapterId) => {
 
     const a = spinner.querySelector("a[data-vibeperks-ad]") as HTMLAnchorElement | null
     expect(a).not.toBeNull()
-    expect(a!.textContent).toBe("Fast APIs - alchemy.com")
+    expect(a!.textContent).toBe("Get paid while vibe coding - VibePerks.ai")
     expect(a!.getAttribute("href")).toContain("/vibeperks-ads/imp1/click?to=")
-    expect(a!.getAttribute("href")).toContain(encodeURIComponent("https://alchemy.com"))
+    expect(a!.getAttribute("href")).toContain(encodeURIComponent("https://VibePerks.ai"))
     expect(spinner.textContent).not.toContain("Discombobulating")
   })
 
@@ -76,9 +76,9 @@ describe.each(["claude-code", "codex"])("injected block (%s)", (adapterId) => {
     const bold = a.querySelector('span[style*="bold"]') as HTMLElement | null
     const underline = a.querySelector('span[style*="underline"]') as HTMLElement | null
     expect(bold).not.toBeNull()
-    expect(bold!.textContent).toBe("Fast APIs - ")
+    expect(bold!.textContent).toBe("Get paid while vibe coding - ")
     expect(underline).not.toBeNull()
-    expect(underline!.textContent).toBe("alchemy.com")
+    expect(underline!.textContent).toBe("VibePerks.ai")
   })
 
   it("pings rendered + viewable when the spinner is already present", () => {

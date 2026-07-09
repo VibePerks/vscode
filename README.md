@@ -5,7 +5,7 @@ and Codex panel spinners** while the agent is thinking - and **nothing about you
 code, prompts, or files ever leaves your machine.**
 
 ```
-Fast APIs for every chain - alchemy.com
+Get paid while vibe coding - VibePerks.ai
 ```
 
 This reaches a surface none of the other VibePerks adapters touch: the **in-panel
