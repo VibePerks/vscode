@@ -300,13 +300,14 @@ function registerCommands(context: vscode.ExtensionContext): void {
       )
       if (choice !== "Replace token") return
     }
-    // Open the dashboard so the user can copy their device token, then take it
-    // inline and persist it to the shared ~/.vibeperks/config.json so it survives
-    // across sessions. applyConfig() re-serves immediately, no window reload.
-    await vscode.env.openExternal(vscode.Uri.parse(SIGN_IN_URL))
+    // Prompt for the device token inline and persist it to the shared
+    // ~/.vibeperks/config.json so it survives across sessions. applyConfig()
+    // re-serves immediately, no window reload. We surface the dashboard URL in
+    // the prompt instead of calling openExternal, so VS Code's trusted-domain
+    // confirmation dialog never blocks the token entry.
     const token = await vscode.window.showInputBox({
       title: "VibePerks sign in",
-      prompt: "Paste your device token from the VibePerks dashboard",
+      prompt: `Paste your device token from ${SIGN_IN_URL}`,
       password: true,
       ignoreFocusOut: true,
     })
