@@ -56,7 +56,25 @@ function meta(target: AdapterTarget): Meta {
   }
 }
 
+// safeHttpUrl normalizes a candidate URL and returns it only when it is a safe
+// http(s) link, else null (so a file:/javascript: or malformed value is rejected).
+function safeHttpUrl(raw: string): string | null {
+  const s = (raw ?? "").trim()
+  if (!s) return null
+  try {
+    const u = new URL(s)
+    return u.protocol === "http:" || u.protocol === "https:" ? u.toString() : null
+  } catch {
+    return null
+  }
+}
+
+// clickUrlFor resolves an ad's click target: the advertiser's full destination URL
+// (path + query such as UTM tags preserved) when it is a safe http(s) link, else the
+// bare domain promoted to https. The visible line still shows only the domain.
 function clickUrlFor(ad: Ad): string {
+  const full = safeHttpUrl(ad.website_url ?? "")
+  if (full) return full
   const domain = ad.domain.replace(/^https?:\/\//, "").replace(/\/+$/, "")
   return domain ? `https://${domain}` : "https://vibeperks.ai"
 }
