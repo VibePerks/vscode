@@ -8,12 +8,7 @@ import { loadConfig, saveDeviceToken, clearDeviceToken, type PluginConfig } from
 import { flush, recordView, type Meta } from "./engine"
 import { start as startLoopback, type LoopbackEvent, type RunningLoopback } from "./loopback"
 import { patch, restore } from "./patcher"
-import {
-  rotateDelayMs,
-  startRotation,
-  type RotationHandle,
-  type RotationTimers,
-} from "./rotation"
+import { rotateDelayMs, startRotation, type RotationHandle, type RotationTimers } from "./rotation"
 import { clearState, type Store } from "./store"
 import type { Ad } from "./types"
 
