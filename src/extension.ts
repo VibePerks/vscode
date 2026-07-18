@@ -8,22 +8,35 @@ import { loadConfig, saveDeviceToken, clearDeviceToken, type PluginConfig } from
 import { flush, recordView, type Meta } from "./engine"
 import { start as startLoopback, type LoopbackEvent, type RunningLoopback } from "./loopback"
 import { patch, restore } from "./patcher"
+import { rotateDelayMs, startRotation, type RotationHandle, type RotationTimers } from "./rotation"
 import { clearState, type Store } from "./store"
 import type { Ad } from "./types"
 
 const PLUGIN_VERSION = "0.1.0"
 const DEFAULT_VIEW_THRESHOLD_MS = 5000
-const DEFAULT_ROTATE_MS = 20000
 const SIGN_IN_URL = "https://vibeperks.ai/install"
 
-// Per-adapter runtime state: the located bundle, the current ad, and its timers.
+// Rotation timers over the host clock. Unref'd so a pending rotation never keeps
+// the extension host process alive on its own.
+const hostTimers: RotationTimers = {
+  set(fn, ms) {
+    const handle = setTimeout(fn, ms)
+    handle.unref?.()
+    return handle
+  },
+  clear(handle) {
+    clearTimeout(handle)
+  },
+}
+
+// Per-adapter runtime state: the located bundle, the current ad, and its rotation.
 interface Surface {
   target: AdapterTarget
   bundlePath: string
   version: string
   supported: boolean
   ad: Ad | null
-  rotateTimer?: ReturnType<typeof setTimeout>
+  rotation?: RotationHandle
 }
 
 // Module-level handles so commands and deactivate can reach the live state. The
@@ -119,29 +132,27 @@ async function serveAndPatch(
   patch(surface.bundlePath, block)
 }
 
+// scheduleRotation (re)starts the self-healing rotation loop for a surface. A
+// failed serve/patch cycle is logged but never kills the loop, so the surface
+// always re-serves on the configured cadence - refreshing a stale ad and falling
+// back to the house ad once every campaign is paused.
 function scheduleRotation(
   context: vscode.ExtensionContext,
   client: VibePerksClient,
   cfg: PluginConfig,
   surface: Surface,
 ): void {
-  if (surface.rotateTimer) clearTimeout(surface.rotateTimer)
-  const ms =
-    surface.ad && surface.ad.rotate_seconds > 0
-      ? surface.ad.rotate_seconds * 1000
-      : DEFAULT_ROTATE_MS
-  surface.rotateTimer = setTimeout(() => {
-    void (async () => {
-      try {
-        if (cfg.optOut) return
-        await serveAndPatch(context, client, surface)
-        scheduleRotation(context, client, cfg, surface)
-      } catch (e) {
-        log(`rotation failed for ${surface.target.id}`, e)
-      }
-    })()
-  }, ms)
-  surface.rotateTimer.unref?.()
+  surface.rotation?.stop()
+  surface.rotation = startRotation({
+    timers: hostTimers,
+    initialDelayMs: rotateDelayMs(surface.ad?.rotate_seconds),
+    cycle: async () => {
+      await serveAndPatch(context, client, surface)
+      return rotateDelayMs(surface.ad?.rotate_seconds)
+    },
+    onError: (e) => log(`rotation failed for ${surface.target.id}`, e),
+    shouldContinue: () => !cfg.optOut,
+  })
 }
 
 function updateStatusBar(cfg: PluginConfig, hasToken: boolean): void {
@@ -163,10 +174,10 @@ function updateStatusBar(cfg: PluginConfig, hasToken: boolean): void {
   statusBar.show()
 }
 
-// restoreAll reverts every patched bundle byte-for-byte and clears timers.
+// restoreAll reverts every patched bundle byte-for-byte and stops rotation.
 function restoreAll(): void {
   for (const s of surfaces.values()) {
-    if (s.rotateTimer) clearTimeout(s.rotateTimer)
+    s.rotation?.stop()
     try {
       restore(s.bundlePath)
     } catch (e) {
@@ -229,9 +240,9 @@ async function applyConfig(): Promise<void> {
   client = new VibePerksClient(cfg.apiBase, cfg.deviceToken)
   const hasToken = cfg.deviceToken !== ""
 
-  // Tear down prior serving state (timers + loopback) before re-applying.
+  // Tear down prior serving state (rotation + loopback) before re-applying.
   for (const s of surfaces.values()) {
-    if (s.rotateTimer) clearTimeout(s.rotateTimer)
+    s.rotation?.stop()
   }
   if (loopback) {
     await loopback.close().catch(() => {})
