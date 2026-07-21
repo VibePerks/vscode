@@ -8,13 +8,17 @@ import { loadConfig, saveDeviceToken, clearDeviceToken, type PluginConfig } from
 import { flush, recordView, type Meta } from "./engine"
 import { start as startLoopback, type LoopbackEvent, type RunningLoopback } from "./loopback"
 import { patch, restore } from "./patcher"
-import { rotateDelayMs, startRotation, type RotationHandle, type RotationTimers } from "./rotation"
+import { startRotation, type RotationHandle, type RotationTimers } from "./rotation"
 import { clearState, type Store } from "./store"
-import type { Ad } from "./types"
+import { type Ad, isEarningCapped } from "./types"
 
 const PLUGIN_VERSION = "0.1.0"
 const DEFAULT_VIEW_THRESHOLD_MS = 5000
 const SIGN_IN_URL = "https://vibeperks.ai/install"
+// Billable serve cadence: a fresh ad (one impression) at most every 5 minutes, so
+// a continuously open panel earns at most 12 ads/hour - matching the backend's
+// per-hour earning cap. This replaces the old ~20s display rotation.
+const BILLABLE_INTERVAL_MS = 5 * 60 * 1000
 
 // Rotation timers over the host clock. Unref'd so a pending rotation never keeps
 // the extension host process alive on its own.
@@ -37,6 +41,9 @@ interface Surface {
   supported: boolean
   ad: Ad | null
   rotation?: RotationHandle
+  // ISO-8601 UTC time an active earning-cap resets. While it is in the future the
+  // surface shows no ad and rotation waits until then before serving again.
+  tryAgainAt?: string
 }
 
 // Module-level handles so commands and deactivate can reach the live state. The
@@ -108,13 +115,23 @@ function extensionsDir(): string {
 }
 
 // serveAndPatch fetches a fresh ad and injects it into the surface's bundle. With
-// no ad available it leaves the bundle pristine (restores any prior patch).
+// no ad available it leaves the bundle pristine (restores any prior patch). When
+// the publisher has hit their earning cap the serve returns an earning_capped
+// signal: the surface shows no ad and records the reset time so rotation backs off.
 async function serveAndPatch(
   context: vscode.ExtensionContext,
   client: VibePerksClient,
   surface: Surface,
 ): Promise<void> {
-  const ad = await client.serve()
+  const result = await client.serve()
+  if (isEarningCapped(result)) {
+    surface.ad = null
+    surface.tryAgainAt = result.try_again_at
+    restore(surface.bundlePath)
+    return
+  }
+  surface.tryAgainAt = undefined
+  const ad = result
   surface.ad = ad
   if (!ad || !loopback) {
     restore(surface.bundlePath)
@@ -132,6 +149,17 @@ async function serveAndPatch(
   patch(surface.bundlePath, block)
 }
 
+// nextDelayMs is the delay until the surface's next serve: the remaining backoff
+// while an earning cap is active (so it resumes exactly when the cap resets), else
+// the fixed 5-minute billable cadence.
+function nextDelayMs(surface: Surface): number {
+  if (surface.tryAgainAt) {
+    const remaining = Date.parse(surface.tryAgainAt) - Date.now()
+    if (remaining > 0) return remaining
+  }
+  return BILLABLE_INTERVAL_MS
+}
+
 // scheduleRotation (re)starts the self-healing rotation loop for a surface. A
 // failed serve/patch cycle is logged but never kills the loop, so the surface
 // always re-serves on the configured cadence - refreshing a stale ad and falling
@@ -145,10 +173,10 @@ function scheduleRotation(
   surface.rotation?.stop()
   surface.rotation = startRotation({
     timers: hostTimers,
-    initialDelayMs: rotateDelayMs(surface.ad?.rotate_seconds),
+    initialDelayMs: nextDelayMs(surface),
     cycle: async () => {
       await serveAndPatch(context, client, surface)
-      return rotateDelayMs(surface.ad?.rotate_seconds)
+      return nextDelayMs(surface)
     },
     onError: (e) => log(`rotation failed for ${surface.target.id}`, e),
     shouldContinue: () => !cfg.optOut,
